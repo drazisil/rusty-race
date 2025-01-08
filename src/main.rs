@@ -28,7 +28,6 @@ fn handle_client(
     };
 
     let peer_addr = stream.peer_addr().unwrap();
-    let port = peer_addr.port();
 
     let mut buf = [0; 1024];
     loop {
@@ -65,15 +64,15 @@ fn handle_client(
 
     tx.send(connection).unwrap();
 
-    // Send the shutdown message to the receiver
-    tx.send(IncomingData {
-        peer_addr: peer_addr,
-        port: port,
-        data: Vec::new(),
-        timestamp: std::time::Instant::now(),
-        extra_message: Some("Shutdown".to_string()),
-    })
-    .unwrap();
+    // // Send the shutdown message to the receiver
+    // tx.send(IncomingData {
+    //     peer_addr: peer_addr,
+    //     port: port,
+    //     data: Vec::new(),
+    //     timestamp: std::time::Instant::now(),
+    //     extra_message: Some("Shutdown".to_string()),
+    // })
+    // .unwrap();
 
     Ok(())
 }
@@ -195,7 +194,7 @@ fn main() -> std::io::Result<()> {
                     received.peer_addr.ip(),
                     received.port
                 );
-                println!("Received: {:02X?}", received.data);
+                println!("Received from port {}: {:?}", received.port, received.data);
             }
         }
     }
