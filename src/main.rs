@@ -113,7 +113,11 @@ fn start_tcp_server(port: u16, tx: std::sync::mpsc::Sender<IncomingData>) {
 
 fn watch_for_keypress(tx: std::sync::mpsc::Sender<IncomingData>) {
     // Use raw mode to avoid waiting for a newline
-    let _ = termios::tcsetattr(0, termios::TCSANOW, &termios::Termios::from_fd(0).unwrap());
+    let existing_termios = termios::Termios::from_fd(0).unwrap();
+    let mut termios_in_noncanonical_mode = existing_termios.clone();
+    termios_in_noncanonical_mode.c_lflag &= !(termios::ICANON | termios::ECHO);
+
+    let _ = termios::tcsetattr(0, termios::TCSANOW, &termios_in_noncanonical_mode);
 
     loop {
         let mut buf = [0; 1];
@@ -138,14 +142,17 @@ fn watch_for_keypress(tx: std::sync::mpsc::Sender<IncomingData>) {
     }
 
     // Reset the terminal to normal mode
-    let _ = termios::tcsetattr(0, termios::TCSANOW, &termios::Termios::from_fd(0).unwrap());
+    let _ = termios::tcsetattr(0, termios::TCSANOW, &existing_termios);
 }
 
 fn set_panic_hook() {
     let default_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         // Reset the terminal to normal mode
-        let _ = termios::tcsetattr(0, termios::TCSANOW, &termios::Termios::from_fd(0).unwrap());
+        let existing_termios = termios::Termios::from_fd(0).unwrap();
+        let mut termios_in_cononical_mode = existing_termios.clone();
+        termios_in_cononical_mode.c_lflag |= termios::ICANON | termios::ECHO;
+        let _ = termios::tcsetattr(0, termios::TCSANOW, &termios_in_cononical_mode);
 
         // Call the default panic hook
         default_hook(info);
